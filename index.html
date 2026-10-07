@@ -1,0 +1,595 @@
+<title>Delta911 Dispatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap">
+<style>
+/* Dispatcher console, deliberately single dark theme (night-shift PSAP screens).
+   Layout: header stats → [call queue | map + incident cards | selected call + what the caller hears + audit log]; stacks on narrow screens. */
+:root {
+  --bg: #0b0f13; --panel: #131a20; --panel2: #1a232b; --line: #26313b; --ink: #e6edf3; --muted: #8b99a6;
+  --red: #ff5a4e; --red-soft: #3a1714; --amber: #ffb547; --amber-soft: #3a2a10; --green: #3fd68a; --green-soft: #11301f;
+  --cyan: #5cc8ff; --cyan-soft: #0f2838; --violet: #b69cff; --violet-soft: #251d3d; --street: #1f2a33; --block: #161e25;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-body); padding-inline: 16px; padding-block: 0 24px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.k { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* Header */
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 12px 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+.brand h1 { font: 800 24px/1 var(--font-display); margin: 0; letter-spacing: -.01em; }
+.brand h1 b { color: var(--red); }
+.brand span { color: var(--muted); font-size: 13px; }
+.clock { font: 600 15px var(--font-mono); background: var(--panel); border: 1px solid var(--line); padding: 4px 10px; border-radius: 8px; }
+.ctrl { display: flex; gap: 6px; }
+.btn { border: 1px solid var(--line); background: var(--panel2); padding: 7px 12px; border-radius: 8px; font-weight: 600; }
+.btn.primary { background: var(--cyan); border-color: var(--cyan); color: #04121c; }
+.btn.red { background: var(--red); border-color: var(--red); color: #1a0402; }
+.btn.ghost { background: none; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.stats { display: grid; grid-template-columns: repeat(6, auto); gap: 4px 18px; width: 100%; }
+.stat b { display: block; font: 800 22px/1.1 var(--font-display); }
+.stat small { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat.red b { color: var(--red); } .stat.green b { color: var(--green); } .stat.cyan b { color: var(--cyan); } .stat.violet b { color: var(--violet); }
+.compare { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.compare strong { color: var(--ink); }
+
+.gate { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--amber-soft); border: 1px solid var(--amber); color: var(--ink); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
+.gate p { margin: 0; flex: 1 1 260px; }
+.gate .k { color: var(--amber); }
+
+/* Grid */
+.grid { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(300px, 360px); gap: 12px; align-items: start; }
+@media (max-width: 1180px) { .grid { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); } .side { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(3, 1fr); } }
+
+/* Queue */
+.qh { display: flex; justify-content: space-between; align-items: baseline; }
+.queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.call { width: 100%; text-align: left; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+.call[aria-current="true"] { outline: 2px solid var(--cyan); outline-offset: -1px; }
+.call.p-red { border-left-color: var(--red); } .call.p-amber { border-left-color: var(--amber); } .call.p-green { border-left-color: var(--green); }
+.call .top { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.call .txt { font-size: 14px; }
+.call .why { font-size: 12px; color: var(--muted); }
+.score { margin-left: auto; font: 600 12px var(--font-mono); padding: 1px 6px; border-radius: 4px; background: var(--line); color: var(--ink); }
+.p-red .score { background: var(--red); color: #1a0402; } .p-amber .score { background: var(--amber); color: #1e1300; } .p-green .score { background: var(--green); color: #03170c; }
+.tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 4px; }
+.tag.new { background: var(--red-soft); color: var(--red); }
+.tag.split { background: var(--violet-soft); color: var(--violet); }
+.tag.wait { background: var(--amber-soft); color: var(--amber); }
+.tag.talk { background: var(--cyan-soft); color: var(--cyan); }
+.tag.ok { background: var(--green-soft); color: var(--green); }
+.tag.cb { background: var(--line); color: var(--ink); }
+.cluster { background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 40%, transparent); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.cluster summary { cursor: pointer; display: flex; justify-content: space-between; gap: 8px; font-weight: 600; list-style: none; }
+.cluster summary::-webkit-details-marker { display: none; }
+.cluster summary b { color: var(--green); font-family: var(--font-mono); }
+.mini { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; }
+.mini button { width: 100%; background: none; border: 0; border-top: 1px solid color-mix(in srgb, var(--green) 20%, transparent); padding: 5px 0; text-align: left; display: flex; gap: 8px; font-size: 12px; }
+.mini button span:last-child { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+
+/* Map + incidents */
+svg.map { display: block; width: 100%; height: auto; max-width: 100%; border-radius: 8px; background: var(--block); }
+.map .st { stroke: var(--street); stroke-width: 6; }
+.map .lbl { fill: var(--muted); font: 600 13px var(--font-body); }
+.map .lm { fill: var(--muted); font: 500 12px var(--font-body); font-style: italic; }
+.map .dot { fill: var(--amber); }
+.map .dot.new { fill: var(--red); }
+.map .bub { stroke-width: 3; cursor: pointer; }
+.map .bub.fire { fill: color-mix(in srgb, var(--red) 30%, transparent); stroke: var(--red); }
+.map .bub.stab { fill: color-mix(in srgb, var(--violet) 30%, transparent); stroke: var(--violet); }
+.map .bub.crash { fill: color-mix(in srgb, var(--amber) 25%, transparent); stroke: var(--amber); }
+.map .bub.pending { stroke-dasharray: 6 5; }
+.map .cnt { fill: var(--ink); font: 700 15px var(--font-mono); text-anchor: middle; pointer-events: none; }
+.incs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.inc { background: var(--panel2); border: 1px solid var(--line); border-top: 4px solid var(--muted); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.inc.fire { border-top-color: var(--red); } .inc.stab { border-top-color: var(--violet); } .inc.crash { border-top-color: var(--amber); }
+.inc.sel { outline: 2px solid var(--cyan); }
+.inc h3 { margin: 0; font: 800 17px/1.15 var(--font-display); }
+.inc .sub { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
+.facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.facts li { display: flex; gap: 6px; align-items: baseline; }
+.facts li::before { content: "•"; color: var(--muted); }
+.facts li.isnew { color: var(--ink); font-weight: 600; }
+.facts li.isnew::before { content: "+"; color: var(--red); font-weight: 700; }
+.facts small { color: var(--muted); font-family: var(--font-mono); font-size: 11px; margin-left: auto; white-space: nowrap; }
+.seg { display: flex; align-items: center; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px 3px 3px 10px; }
+.seg button { border: 0; background: none; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--green-soft); color: var(--green); }
+.seg button[data-mode="human"][aria-pressed="true"] { background: var(--amber-soft); color: var(--amber); }
+.cluster.grp { background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 50%, transparent); }
+.cluster.grp p { margin: 0; font-size: 13px; }
+.impact { margin: 0; font-size: 13px; }
+.impact b { color: var(--ink); font-family: var(--font-mono); }
+.bc { font-size: 12px; background: var(--bg); border-radius: 8px; padding: 6px 8px; color: var(--muted); margin: 0; }
+
+/* Side */
+.side { display: flex; flex-direction: column; gap: 12px; }
+.detail h2 { margin: 0; font: 800 20px/1.15 var(--font-display); }
+.quote { margin: 0; font-size: 15px; border-left: 3px solid var(--line); padding-left: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--line); color: var(--muted); }
+.chip.new { background: var(--red-soft); color: var(--red); font-weight: 600; }
+.chip.mis { background: var(--violet-soft); color: var(--violet); font-weight: 600; }
+.verdict { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--panel2); margin: 0; }
+.verdict.red { background: var(--red-soft); } .verdict.green { background: var(--green-soft); } .verdict.violet { background: var(--violet-soft); }
+table.sc { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.sc td { padding: 3px 0; border-bottom: 1px solid var(--line); }
+table.sc td:last-child { text-align: right; font-family: var(--font-mono); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.hears { background: var(--cyan-soft); border: 1px solid color-mix(in srgb, var(--cyan) 40%, transparent); }
+.hears p { margin: 0; font-size: 14px; }
+.hears .k { color: var(--cyan); }
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: 12px; max-height: 220px; overflow-y: auto; }
+.log li { display: grid; grid-template-columns: 62px 1fr auto; gap: 6px; padding: 4px 0; border-top: 1px solid var(--line); align-items: baseline; }
+.log li:first-child { border-top: 0; }
+.log time { color: var(--muted); font-family: var(--font-mono); }
+.log button { border: 0; background: none; color: var(--cyan); font-weight: 600; padding: 0; font-size: 12px; }
+.rules { font-size: 12px; color: var(--muted); margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; }
+
+/* About */
+.about { margin-top: 12px; font-size: 14px; }
+.about summary { cursor: pointer; padding: 2px 0; }
+.about[open] { gap: 10px; }
+.about h2 { margin: 0; font: 800 22px/1.15 var(--font-display); text-wrap: balance; }
+.about h3 { margin: 6px 0 0; font: 800 15px/1.2 var(--font-display); text-transform: uppercase; letter-spacing: .04em; color: var(--cyan); }
+.about p, .about ul, .about ol { margin: 0; max-width: 78ch; }
+.about ul, .about ol { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.about table { border-collapse: collapse; font-size: 13px; min-width: 560px; }
+.about td, .about th { border-bottom: 1px solid var(--line); padding: 5px 8px 5px 0; text-align: left; vertical-align: top; }
+.about th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.tw { overflow-x: auto; }
+</style>
+
+<header>
+  <div class="brand"><h1>Delta<b>911</b></h1><span>Every surge call gets answered. Only new information reaches a dispatcher.</span></div>
+  <span class="clock" id="clock">9:41:00 PM</span>
+  <div class="seg" id="modes" role="group" aria-label="Regional compliance profile"><span class="k">Rules</span><button data-mode="auto">NYC · AI may answer</button><button data-mode="human">Human must answer</button></div>
+  <div class="ctrl"><button class="btn primary" id="play">▶ Play</button><button class="btn" id="reset">Reset</button></div>
+  <div class="stats" id="stats"></div>
+</header>
+<div class="gate" id="gate" hidden></div>
+
+<main class="grid">
+  <section class="panel">
+    <div class="qh"><div class="k">Needs a dispatcher</div><span class="mono" id="qn" style="font-size:12px;color:var(--muted)"></span></div>
+    <ul class="queue" id="queue"></ul>
+    <div class="k">Answered by AI · line held</div>
+    <div id="clusters"></div>
+    <div class="k">Callback queue</div>
+    <ul class="queue" id="cb"></ul>
+  </section>
+
+  <section class="panel">
+    <div class="k">Midtown · live incidents</div>
+    <svg class="map" id="map" viewBox="0 0 600 400" role="img" aria-label="Map of calls and incident bubbles around 5th Ave and 34th St"></svg>
+    <div class="incs" id="incs"></div>
+  </section>
+
+  <aside class="side">
+    <section class="panel detail" id="detail"></section>
+    <section class="panel hears" id="hears"></section>
+    <section class="panel">
+      <div class="k">Audit log · every AI action is reversible</div>
+      <ul class="log" id="log"></ul>
+      <ul class="rules">
+        <li>Impact = people at risk, never neighborhood.</li>
+        <li>Priority comes from what the caller says. No voice-stress score, no neighborhood weighting.</li>
+        <li>No 911 call is ever hung up by the AI. Clustered callers keep their place in line.</li>
+        <li>Different incident types are never merged without a dispatcher.</li>
+      </ul>
+    </section>
+  </aside>
+</main>
+
+<details class="panel about" id="about">
+  <summary class="k">About Delta911 · problem, research, how it works, mock data</summary>
+  <h2>Delta911: AI call triage for 911 surges that clusters duplicate reports and surfaces only new, life-safety information</h2>
+  <p><b>Delta911</b> is a dispatcher console for 911 call centers (PSAPs) during a call-volume spike after a major incident: a fire, shooting, stabbing, riot or crash. Every incoming call is transcribed, its facts are extracted, and the facts are <b>diffed against what the incident already knows</b>. A call that only repeats known facts is answered by the AI with a dispatcher-approved message and stays on the line, in place. A call that adds a new fact (someone trapped, a second victim, a suspect's direction) is flagged to a human immediately, and the new fact is added to the incident card for responders.</p>
+  <p class="bc">Built for the Plug and Play × PMAI Hackathon, Challenge 3: 911 call surges. All calls in this prototype are scripted mock data.</p>
+
+  <h3>Current status: the problem</h3>
+  <ul>
+    <li><b>Duplicate reports swamp the lines.</b> Dozens to hundreds of bystanders report the same obvious event. Lahaina, 2023: 4,523 calls in one day against an average of 360, with dispatch 51% short-staffed. Sedgwick County, KS: 168 calls in under 10 minutes during a mall shooting; the director said it would take 168 dispatchers to avoid holds.</li>
+    <li><b>Critical calls get buried.</b> At Apalachee High School (2024), callers heard a "high call volume" recording and one waited more than 10 minutes. The caller trapped on the 3rd floor is #75 in line behind 74 people describing the same smoke.</li>
+    <li><b>New facts get lost.</b> "There's a second victim" or "he ran toward Herald Square" changes the response, but it is spoken into the same queue as everyone else.</li>
+    <li><b>Staffing is thin.</b> In a 2022 IAED/NASNA survey of 774 centers, about a third reported vacancy rates of 30% or more. In a 2023 NENA/Carbyne survey, 74% of respondents reported burnout.</li>
+  </ul>
+
+  <h3>What exists today, and the gap</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Product</th><th>What it does</th><th>Gap</th></tr></thead>
+    <tbody>
+      <tr><td>Carbyne AI-V Emergency Call Triage (acquired by Axon)</td><td>When every call-taker is busy, AI answers calls within about 200 m of a known car crash and sends callers who were involved, or who have new information, to a human. New Orleans reports more than 30% fewer redundant calls among the events it triaged.</td><td>Proven for routine crashes only. Its performance in mass-casualty events is unknown.</td></tr>
+      <tr><td>Prepared (Axon)</td><td>Combines call audio, text, video, GPS and translation in one view; used by 1,000+ agencies.</td><td>Helps the call-taker on each call; does not cluster calls or decide which matter.</td></tr>
+      <tr><td>RapidSOS HARMONY</td><td>AI copilot that summarizes telematics, video and transcripts; available on AT&amp;T's NG911 network.</td><td>Context for each call, no deduplication.</td></tr>
+      <tr><td>Motorola VESTA Assist AI and Hyper, Aurelian, Intrado VIPER Answer, Amazon Connect</td><td>Transcription, translation, summaries, and AI agents that resolve non-emergency calls (Aurelian reports 74% handled with no dispatcher).</td><td>Non-emergency calls only, not surges of real 911 calls.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Delta911 extends the one proven pattern (Carbyne's "same incident nearby" triage) from crashes to mass-casualty surges. It adds two things no product clearly offers: <b>novelty detection</b> (diffing each call against known facts) and <b>human-confirmed split and merge</b> for different incidents at the same corner.</p>
+
+  <h3>Hero feature 1: Delta Detection</h3>
+  <p>Each incident keeps a card of known facts. Every call's transcript is turned into facts (incident type, location, people at risk, injuries, suspect details) and compared with the card:</p>
+  <ul>
+    <li><b>No new facts:</b> the call is counted as a confirmation of the incident's size. The AI answers with the broadcast the dispatcher approved, and the caller keeps their place in line and can speak up at any time.</li>
+    <li><b>New facts:</b> the call is flagged red for a dispatcher with a one-line summary, and the fact is added to the card ("+ Person trapped, 3rd floor, from call #75") so responders get it immediately.</li>
+  </ul>
+  <p>This replaces "voice stress" scoring. A National Institute of Justice field test found voice stress analysis about as accurate as chance, and it risks bias against accents and non-native speakers. A calm caller can be in mortal danger. What the caller says is a fairer and more reliable signal than how they sound.</p>
+
+  <h3>Hero feature 2: one-tap split and merge</h3>
+  <p>Geography alone would merge a stabbing reported at 5th Ave &amp; 34th St into the fire at the same corner. Delta911 treats the incident type as a hard boundary: it flags "type mismatch, suggest split" and waits for a dispatcher. One tap creates a second incident with its own card, its own broadcast and its own priority. When unsure, the system keeps incidents apart, because a wrong merge hides a victim and a wrong split only costs a second look.</p>
+
+  <h3>Safety rules built into the design</h3>
+  <ul>
+    <li><b>The AI never hangs up a 911 call.</b> Clustered callers stay on the line and keep their place, and hear: "If you are inside, hurt, or have new information, say so now." Callers who hang up get an automatic text and go into a callback queue, so no call is dropped.</li>
+    <li><b>Dispatcher-confirmed broadcasts only.</b> The message a caller hears is approved by a human, and kept generic (no suspect location or tactical details).</li>
+    <li><b>The AI flags; the dispatcher chooses.</b> The phone system still holds calls in arrival order, which some state rules require. Delta911 sorts the dispatcher's view and flags calls, and a human decides who to pick up.</li>
+    <li><b>Priority comes from content only,</b> never from neighborhood or area. A call from a quiet block counts the same as one from Midtown.</li>
+    <li><b>Everything is reversible.</b> Every clustering decision is in the audit log with one-tap Undo ("pull out of cluster").</li>
+  </ul>
+
+  <h3>Two scores: incident severity and call priority</h3>
+  <p>Delta911 separates two questions that are usually mixed together. <b>Incident severity</b> answers "how big could this get, and how many units does it need?" <b>Call priority</b> answers "which caller should a dispatcher pick up next?"</p>
+  <ul>
+    <li><b>Incident severity (potential impact)</b> = incident type + people at risk + whether it can spread. Structure fire 55, stabbing 60, minor crash 10. People at risk: a 6-story residential building (~40 people) +25, a victim and bystanders +5, two uninjured drivers +5. Spreading: fire +12, armed suspect at large +15, crash 0. Result: building fire 92, stabbing 80, fender bender 15. A full building on fire outranks a single stabbing, and both far outrank a crash.</li>
+    <li><b>Call priority</b> = the severity of the incident the call belongs to + new life-safety facts in this call: person trapped +30, person who can't get out alone +20, suspect details +15, injured victim +10 (max 100). Calls that add nothing new score 10 and are clustered. Red is 80 or more, amber 50 or more, green below 50.</li>
+    <li><b>Duplicate volume is a size signal.</b> 87 people reporting the same fire means it is large and visible. The incident card shows the count, which supports the severity estimate; it is shown, not added to the score, so a loud event can't push out a quiet one.</li>
+    <li><b>Impact = people at risk, never neighborhood.</b> Scale is the estimated number of people in danger (from building type, floors, reported victims), never the area's income, demographics or address.</li>
+    <li>Severity is designed to map onto the standardized dispatch levels that centers already use (for example, determinant levels in the Fire and Medical Priority Dispatch Systems), so it recommends a response level in a format dispatchers already know.</li>
+  </ul>
+
+  <h3>Why the demo shows only about 120 calls</h3>
+  <p>New York's 911 system already handles millions of calls a year, so a normal night is never quiet. The demo shows one Midtown sector's console, with normal citywide calls (a cardiac arrest in Queens, a fall in Staten Island, noise and lockout calls) still arriving underneath the surge. That is the real problem: a surge lands <b>on top of</b> normal load, so call-takers are already busy when the duplicates hit. Delta911 keeps the quiet emergencies elsewhere (the CPR call in Queens) at the top of the queue instead of letting them get buried under 100 reports of a fire everyone can see. The approach scales with volume: the more duplicates, the more calls clustering saves.</p>
+
+  <h3>Regional compliance profile</h3>
+  <p>911 rules differ by state. Each deployment loads a compliance profile for its PSAP (shown in the header). Where an AI-answered held line is permitted, duplicates hear the approved broadcast automatically. Where a human must answer every call, the AI only groups the duplicates and prepares the approved reply, and a dispatcher answers them with one tap. In every profile, the AI never hangs up and never closes a call on its own.</p>
+
+  <h3>Mock data and the real feeds they stand in for</h3>
+  <ul>
+    <li><b>Call stream:</b> scripted calls with arrival times, caller numbers and transcripts. In production: NG911 SIP/i3 call delivery (the FCC's 2024 NG911 order requires carriers to deliver IP calls on request) plus device location from RapidSOS-style location data.</li>
+    <li><b>Speech-to-text:</b> mock transcripts. In production: streaming ASR on the first 10–15 seconds of each call, with translation.</li>
+    <li><b>Fact extraction:</b> mock extracted facts. In production: an LLM extractor with a fixed fact schema (type, location, people at risk, injuries, hazards, suspect), returning only facts it can quote from the transcript.</li>
+    <li><b>Clustering:</b> location within a radius, plus the same incident type, plus a time window. Type mismatch blocks an automatic merge.</li>
+    <li><b>Map:</b> a simplified Midtown grid around 5th Ave and 34th St.</li>
+  </ul>
+  <p>Why mock it: the demo must be repeatable and must never touch real 911 audio. Each mock record has the same shape as the production record, so wiring in live feeds means writing adapters, not redesigning.</p>
+
+  <h3>Try the demo (about 60 seconds)</h3>
+  <ol>
+    <li>Press <b>Play</b>. The first fire report arrives and duplicates start to pile up.</li>
+    <li>When asked, <b>Confirm &amp; broadcast</b> the fire. Waiting duplicates collapse into one cluster that is answered by the AI, with the line held.</li>
+    <li>A stabbing is reported at the same corner. Tap <b>Split</b> to create a second incident.</li>
+    <li>Watch call #75, "I'm on the third floor and I can't breathe", jump out of the noise with a red NEW fact.</li>
+    <li>Check the header: every call answered, only a handful needed a human, and 0 were dropped.</li>
+  </ol>
+
+  <h3>Impact we would measure in a pilot</h3>
+  <ul>
+    <li>Time from a new life-safety fact being spoken to a dispatcher hearing it.</li>
+    <li>Share of surge calls that need a human versus calls answered with line held.</li>
+    <li>Wrong merges (target: 0) and wrong splits, reviewed through the audit log.</li>
+    <li>Abandoned calls that received a callback.</li>
+  </ul>
+  <p><i>"We built this not just as an AI showcase, but as a responsible product. By acknowledging algorithmic bias and regional legal boundaries, Delta911 delivers what matters most in public safety: speed, fairness, and compliance."</i></p>
+  <p class="bc">Keywords: potential impact, incident severity, people at risk, Fire Priority Dispatch System, algorithmic bias, regional compliance, 911 call surge, PSAP, emergency call triage, duplicate call detection, call clustering, mass casualty incident, NG911, dispatcher workload, life-safety escalation, novelty detection, delta detection, human in the loop, audit log, callback queue, Carbyne, Prepared, RapidSOS, Axon 911, public safety AI, GovTech.</p>
+</details>
+
+<script>
+const T0 = 21 * 3600 + 41 * 60;   // 9:41:00 PM
+const clock = t => { const s = T0 + Math.floor(t), h = Math.floor(s / 3600) % 12 || 12; return `${h}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')} PM`; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---------- Fact vocabulary + scoring ----------
+const FACT = {
+  fire: 'Structure fire', smoke: 'Heavy smoke', bldg: '6-story residential building', loc34: '5th Ave & W 34th St',
+  trapped: 'Person trapped, 3rd floor, can’t breathe', mobility: 'Wheelchair user still inside, apt 4B',
+  knife: 'Stabbing, man with a knife', injured: 'Victim bleeding on sidewalk', suspect: 'Suspect fled toward Herald Sq, red hoodie',
+  crash: 'Minor 2-car crash, no injuries', loc28: '7th Ave & W 28th St',
+  cpr: 'Not breathing, CPR in progress', headinj: 'Fall, head injury, confused', noise: 'Loud music next door', lockout: 'Locked out of car', alarm: 'Car alarm going off',
+};
+// Two layers: incident severity (potential impact: how many people at risk, can it grow) and call priority (severity + what this call adds).
+// Impact = people at risk, never neighborhood.
+const IMPACT = {
+  fire: { base: 55, spread: ['Yes, fire spreads floor to floor', 12] },
+  stab: { base: 60, spread: ['Yes, armed suspect at large', 15] },
+  crash: { base: 10, spread: ['No', 0] },
+  med: { base: 70, spread: ['No', 0] },
+  other: { base: 5, spread: ['No', 0] },
+};
+const atRisk = (type, facts) => type === 'fire' ? (facts.includes('bldg') ? ['~40 (6-story residential)', 25] : ['Unknown, size not reported', 10])
+  : type === 'stab' ? ['~2 (victim + bystanders)', 5] : type === 'crash' ? ['2 drivers, no injuries', 5]
+  : type === 'med' ? (facts.includes('cpr') ? ['1 patient, not breathing', 20] : ['1 patient', 5]) : ['None reported', 0];
+const sevParts = (type, facts) => { const r = atRisk(type, facts), s = IMPACT[type].spread; return [[TYPE[type], IMPACT[type].base], ['People at risk: ' + r[0], r[1]], ['Spreading: ' + s[0], s[1]]]; };
+const sum = p => p.reduce((s, x) => s + x[1], 0);
+const sevOf = (type, facts) => Math.min(100, sum(sevParts(type, facts)));
+const BUMP = { trapped: 30, mobility: 20, suspect: 15, injured: 10 };
+const TYPE = { fire: 'Structure fire', stab: 'Stabbing', crash: 'Vehicle crash', med: 'Medical emergency', other: 'Non-emergency' };
+let MODE = 'auto';   // regional compliance profile: 'auto' = AI may answer duplicates (line held), 'human' = a person must answer every call
+const LOC = { A: [360, 186], B: [384, 206], C: [160, 330] };
+const DISP = ['D1 Ramirez', 'D2 Okafor', 'D3 Chen'];
+const BROADCAST = {
+  A: 'We have reports of a building fire at 5th Avenue and 34th Street. Firefighters are on the way.',
+  B: 'We have reports of an incident at 5th Avenue and 34th Street. Police are responding.',
+};
+const SAY = ' If you are inside, hurt, or have new information, say so now or press 1, and you’ll be connected to a dispatcher right away. Stay on the line to keep your place.';
+
+// ---------- Scripted surge ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const FIRE_DUP = [
+  ['There’s a building on fire at 34th and 5th.', ['fire', 'loc34']], ['Huge smoke over 5th Avenue, near 34th.', ['smoke', 'loc34']],
+  ['I can see flames in an apartment building on 34th.', ['fire', 'bldg']], ['Calling about the fire at 5th and 34th, it’s bad.', ['fire', 'loc34']],
+  ['Smoke pouring out of the building across the street from me.', ['smoke', 'bldg']], ['Fire! 34th Street and 5th, black smoke everywhere.', ['fire', 'smoke', 'loc34']],
+  ['Is anyone coming? The building on 34th is burning.', ['fire', 'bldg']], ['There’s a lot of smoke on 5th, I think something’s on fire.', ['smoke', 'loc34']],
+];
+const STAB_DUP = [
+  ['Someone just got stabbed by the fire on 34th.', ['knife', 'loc34']], ['People are screaming, a guy had a knife at 5th Ave.', ['knife', 'loc34']],
+  ['There was a stabbing, a man is bleeding on the sidewalk.', ['knife', 'injured']], ['Calling about the stabbing at 34th and 5th.', ['knife', 'loc34']],
+];
+const phone = () => `(${['212', '646', '917', '347'][Math.floor(rnd() * 4)]}) 555-0${String(100 + Math.floor(rnd() * 899)).slice(0, 3)}`;
+function buildScript() {
+  seed = 7;
+  const ev = [], call = (t, id, type, text, facts, extra = {}) => ev.push({ t, call: { id, type, text, facts, phone: phone(), ...extra } });
+  call(0.5, 'c1', 'fire', 'There’s smoke pouring out of a building on 34th and 5th, I think it’s on fire! It’s a big apartment building.', ['fire', 'smoke', 'bldg', 'loc34']);
+  [1, 1.5, 2.5, 3, 3.5].forEach((t, k) => call(t, 'p' + k, 'fire', ...FIRE_DUP[k]));
+  ev.push({ t: 2, pickup: 'c1' });
+  ev.push({ t: 4, gate: 'confirm' });
+  for (let k = 0; k < 79; k++) call(4.5 + rnd() * 55.5, 'f' + k, 'fire', ...FIRE_DUP[Math.floor(rnd() * FIRE_DUP.length)]);
+  for (let k = 0; k < 22; k++) call(20.5 + rnd() * 39.5, 's' + k, 'stab', ...STAB_DUP[Math.floor(rnd() * STAB_DUP.length)]);
+  call(14, 'crash', 'crash', 'Somebody rear-ended me at 7th and 28th. Nobody’s hurt, but the cars are blocking the lane.', ['crash', 'loc28']);
+  call(20, 'stab', 'stab', 'Someone is stabbing people at the corner of 34th and 5th! A man is bleeding really bad!', ['knife', 'injured', 'loc34']);
+  ev.push({ t: 20.2, gate: 'split' });
+  call(26, 'suspect', 'stab', 'The guy with the knife ran toward Herald Square, he’s in a red hoodie.', ['knife', 'suspect']);
+  call(40, 'trapped', 'fire', 'I’m on the third floor of the burning building, the stairs are full of smoke, I can’t breathe…', ['fire', 'smoke', 'trapped']);
+  call(47, 'mobility', 'fire', 'My neighbor in 4B uses a wheelchair, she’s still inside, she can’t get down the stairs.', ['fire', 'mobility']);
+  ev.push({ t: 23, pickup: 'stab' }, { t: 29, pickup: 'suspect' }, { t: 43, pickup: 'trapped' }, { t: 50, pickup: 'mobility' }, { t: 33, pickup: 'crash' });
+  ev.push({ t: 36, hangup: 'f20' });
+  // Normal citywide load keeps arriving underneath the Midtown surge.
+  [[8, 'med', 'My father collapsed, he’s not breathing, I’m doing CPR. Main Street in Flushing.', ['cpr'], 'Main St, Flushing, Queens'],
+   [12, 'other', 'The music next door has been blasting for hours.', ['noise'], 'Grand Concourse, Bronx'],
+   [17, 'other', 'I locked myself out of my car with the engine running.', ['lockout'], 'Atlantic Ave, Brooklyn'],
+   [31, 'med', 'My wife fell down the stairs, her head is bleeding and she’s confused.', ['headinj'], 'Victory Blvd, Staten Island'],
+   [44, 'other', 'A car alarm has been going off for an hour.', ['alarm'], 'Amsterdam Ave, Manhattan'],
+  ].forEach(([t, type, text, facts, where], k) => call(t, 'bg' + k, type, text, facts, { where }));
+  ev.push({ t: 11, pickup: 'bg0' }, { t: 35, pickup: 'bg3' });
+  ev.push({ t: 61, end: true });
+  return ev.sort((a, b) => a.t - b.t || (a.gate ? 1 : 0) - (b.gate ? 1 : 0));
+}
+
+// ---------- State ----------
+let S, EV, timer;
+function reset() {
+  clearInterval(timer); timer = null;
+  EV = buildScript();
+  S = { t: 0, i: 0, n: 0, calls: [], inc: {}, split: false, sel: null, selInc: null, log: [], disp: 0, ended: false };
+  render();
+}
+const byId = id => S.calls.find(c => c.id === id);
+const log = (msg, undo) => S.log.unshift({ t: S.t, msg, undo });
+const pri = s => s >= 80 ? 'red' : s >= 50 ? 'amber' : 'green';
+
+function addIncident(key, type, c, confirmed) {
+  S.inc[key] = { key, type, confirmed, facts: c.facts.map(f => ({ f, src: c.n, isnew: false })), calls: [c.id] };
+}
+function arrive(c) {
+  c.n = ++S.n; c.t = S.t; c.status = 'waiting'; c.delta = [];
+  if (c.where) { addIncident(c.id, c.type, c, true); c.inc = c.id; }
+  else if (c.type === 'crash') { addIncident('C', 'crash', c, true); c.inc = 'C'; }
+  else {
+    const key = c.type === 'stab' && S.split ? 'B' : 'A', inc = S.inc[key];
+    c.inc = key;
+    if (!inc) addIncident(key, c.type, c, false);
+    else {
+      inc.calls.push(c.id);
+      if (inc.type !== c.type) { c.mismatch = true; c.status = 'flagged'; c.delta = c.facts.slice(); }
+      else {
+        c.delta = c.facts.filter(f => !inc.facts.some(x => x.f === f));
+        if (c.delta.length) { c.status = 'flagged'; c.delta.forEach(f => inc.facts.push({ f, src: c.n, isnew: true })); log(`New fact from #${c.n}: ${FACT[c.delta[0]]}. Flagged red.`); }
+        else if (inc.confirmed) cluster(c);
+      }
+    }
+  }
+  S.calls.push(c);
+}
+// Priority is derived at render time so it follows the incident card as facts arrive or a split happens.
+function scoreParts(c) {
+  if (c.pulled) return [['Pulled out by dispatcher for review', 50]];
+  if (['clustered', 'grouped', 'callback'].includes(c.status) || (c.status === 'waiting' && S.inc[c.inc].calls[0] !== c.id && !c.delta.length)) return [['Duplicate, no new facts', 10]];
+  const facts = c.mismatch ? c.facts : S.inc[c.inc].facts.map(f => f.f);
+  return [['Incident severity', sevOf(c.type, facts)], ...c.delta.filter(f => BUMP[f]).map(f => ['New: ' + FACT[f], BUMP[f]])];
+}
+const scoreOf = c => Math.min(100, sum(scoreParts(c)));
+function cluster(c) {
+  if (MODE === 'human') { c.status = 'grouped'; return; }
+  c.status = 'clustered'; log(`Answered #${c.n} with the ${TYPE[S.inc[c.inc].type].toLowerCase()} broadcast. No new facts. Line held.`, c.id); }
+function confirmInc(key) {
+  const inc = S.inc[key]; if (!inc || inc.confirmed) return;
+  inc.confirmed = true; log(`Dispatcher confirmed ${TYPE[inc.type].toLowerCase()} at 5th Ave & 34th St. Broadcast approved.`);
+  S.calls.filter(c => c.inc === key && c.status === 'waiting' && !c.delta.length && inc.calls[0] !== c.id).forEach(cluster);
+}
+function doSplit() {
+  const c = byId('stab'); if (!c || S.split) return;
+  S.split = true; S.inc.A.calls = S.inc.A.calls.filter(id => id !== c.id);
+  addIncident('B', 'stab', c, true); c.inc = 'B'; c.mismatch = false; c.splitFrom = true;
+  log(`Dispatcher split #${c.n} into a new incident: Stabbing at 5th Ave & 34th St.`);
+  S.selInc = 'B';
+}
+function pickup(id, who) {
+  const c = byId(id); if (!c || !['waiting', 'flagged'].includes(c.status)) return;
+  c.status = 'talking'; c.who = who || DISP[S.disp++ % 3];
+  log(`${c.who} picked up #${c.n}.`);
+}
+function answerGroup(k) {
+  const cs = S.calls.filter(c => c.inc === k && c.status === 'grouped'); if (!cs.length) return;
+  cs.forEach(c => { c.status = 'clustered'; c.who = DISP[0]; });
+  log(`${DISP[0]} answered ${cs.length} grouped callers with one tap. Approved broadcast playing, lines held.`);
+}
+function setMode(m) {
+  if (m === MODE) return; MODE = m;
+  log(m === 'human' ? 'Compliance profile: a human must answer every call. Duplicates will be grouped for one-tap reply.' : 'Compliance profile: AI may answer duplicates with the approved broadcast, line held.');
+  if (m === 'auto') ['A', 'B'].forEach(answerGroup);
+}
+function pullOut(id) {
+  const c = byId(id); if (!c || !['clustered', 'grouped'].includes(c.status)) return;
+  c.status = 'flagged'; c.pulled = true;
+  log(`Dispatcher pulled #${c.n} out of the cluster for review.`);
+}
+
+// ---------- Playback (stops at gates until the dispatcher acts) ----------
+const gateOpen = g => g === 'confirm' ? S.inc.A && S.inc.A.confirmed : S.split;
+function tick() {
+  S.t = Math.round((S.t + 0.25) * 100) / 100;
+  while (S.i < EV.length && EV[S.i].t <= S.t) {
+    const e = EV[S.i];
+    if (e.gate && !gateOpen(e.gate)) { S.t = e.t; pause(); S.gate = e.gate; if (e.gate === 'split') S.sel = 'stab'; render(); return; }
+    S.i++;
+    if (e.call) arrive({ ...e.call });
+    else if (e.pickup) pickup(e.pickup);
+    else if (e.hangup) { const c = byId(e.hangup); if (c && ['clustered', 'grouped'].includes(c.status)) { c.status = 'callback'; log(`#${c.n} hung up after ${Math.round(S.t - c.t)}s. Text sent, added to callback queue.`); } }
+    else if (e.end) { S.ended = true; pause(); }
+  }
+  S.gate = null; render();
+}
+function play() { if (S.ended) reset(); if (S.gate && !gateOpen(S.gate)) return; clearInterval(timer); timer = setInterval(tick, 110); render(); }
+function pause() { clearInterval(timer); timer = null; }
+
+// ---------- Rendering ----------
+function stat(cls, v, l) { return `<div class="stat ${cls}"><b class="mono">${v}</b><small>${l}</small></div>`; }
+function renderHeader() {
+  document.getElementById('clock').textContent = clock(S.t);
+  const C = S.calls, human = C.filter(c => ['waiting', 'flagged', 'talking'].includes(c.status)).length;
+  const newFacts = Object.values(S.inc).reduce((n, i) => n + i.facts.filter(f => f.isnew).length, 0);
+  document.getElementById('stats').innerHTML =
+    stat('', C.length, 'Calls in') + stat('green', C.filter(c => c.status === 'clustered').length, MODE === 'human' ? 'Answered (one tap), line held' : 'Answered by AI, line held') +
+    stat('red', newFacts, 'New facts surfaced') + stat('violet', S.split ? 1 : 0, 'Incidents split') +
+    stat('cyan', human, 'Need a dispatcher') + stat('', 0, 'Calls dropped') +
+    `<div class="compare"><span>Without Delta911: <strong>${C.length} calls</strong> in one line for this sector’s <strong>3 call-takers</strong>.</span><span>With Delta911: <strong>${human}</strong> need a human, every new fact on top${MODE === 'human' ? `, <strong>${C.filter(c => c.status === 'grouped').length}</strong> grouped for one-tap reply` : ''}.</span></div>`;
+  document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === MODE));
+  const p = document.getElementById('play');
+  p.textContent = timer ? '❚❚ Pause' : S.ended ? '↻ Replay' : S.t ? '▶ Resume' : '▶ Play';
+  const g = document.getElementById('gate');
+  g.hidden = !S.gate;
+  if (S.gate === 'confirm') g.innerHTML = `<div><div class="k">Dispatcher action needed</div><p>AI grouped ${S.inc.A.calls.length} calls as one structure fire at 5th Ave &amp; 34th St. Confirm it to approve the broadcast and answer the duplicates.</p></div><button class="btn red" data-confirm="A">Confirm &amp; broadcast</button>`;
+  else if (S.gate === 'split') g.innerHTML = `<div><div class="k">Dispatcher action needed</div><p>Call #${byId('stab').n} is at the same corner as the fire but reports a <b>stabbing</b>. Different incident type, so the AI won’t merge it.</p></div><button class="btn" style="background:var(--violet);border-color:var(--violet);color:#120a26" data-split>Split into new incident</button>`;
+}
+function callRow(c) {
+  const tag = c.status === 'talking' ? `<span class="tag talk">${esc(c.who)}</span>` : c.mismatch ? '<span class="tag split">Type mismatch</span>'
+    : c.delta.length && S.inc[c.inc].calls[0] !== c.id ? '<span class="tag new">New fact</span>' : c.pulled ? '<span class="tag wait">Pulled out</span>'
+    : S.inc[c.inc].calls[0] === c.id ? '<span class="tag new">First report</span>' : '<span class="tag wait">Likely duplicate</span>';
+  const why = c.mismatch ? 'Suggest split: stabbing ≠ fire' : c.delta.length && S.inc[c.inc].calls[0] !== c.id ? '+ ' + c.delta.filter(f => !['fire', 'knife', 'smoke'].includes(f)).map(f => FACT[f]).join(', ')
+    : c.status === 'waiting' && S.inc[c.inc].calls[0] !== c.id ? 'Waiting for the incident to be confirmed' : TYPE[c.type] + (c.where ? ' · ' + c.where : '');
+  return `<li><button class="call p-${pri(scoreOf(c))}" data-call="${c.id}" aria-current="${S.sel === c.id}">
+    <span class="top"><span class="mono">#${c.n}</span><span class="mono">${clock(c.t).slice(0, -3)}</span>${tag}<span class="score">${scoreOf(c)}</span></span>
+    <span class="txt">“${esc(c.text)}”</span><span class="why">${esc(why)}</span></button></li>`;
+}
+function renderQueue() {
+  const q = S.calls.filter(c => ['waiting', 'flagged', 'talking'].includes(c.status))
+    .sort((a, b) => (a.status === 'talking') - (b.status === 'talking') || scoreOf(b) - scoreOf(a) || a.n - b.n);
+  document.getElementById('qn').textContent = `${q.length} of ${S.calls.length}`;
+  document.getElementById('queue').innerHTML = q.length ? q.map(callRow).join('') : '<li class="empty">Press Play to start the surge.</li>';
+  const groups = ['A', 'B'].filter(k => S.inc[k]).map(k => ({ k, cs: S.calls.filter(c => c.inc === k && c.status === 'clustered'), gs: S.calls.filter(c => c.inc === k && c.status === 'grouped') })).filter(g => g.cs.length || g.gs.length);
+  document.getElementById('clusters').innerHTML = groups.length ? groups.map(({ k, cs, gs }) => (gs.length ? `<div class="cluster grp"><p><b>${gs.length} duplicate${gs.length > 1 ? 's' : ''}</b> of the ${TYPE[S.inc[k].type].toLowerCase()} grouped. Rules here require a human to answer, so the AI won’t.</p><button class="btn" style="background:var(--amber);border-color:var(--amber);color:#1e1300" data-answer="${k}">Answer all ${gs.length} with approved reply (1 tap)</button></div>` : '') + (!cs.length ? '' : `<details class="cluster"><summary><span>✓ ${TYPE[S.inc[k].type]} · 5th &amp; 34th</span><b>${cs.length} calls</b></summary>
+    <ul class="mini">${cs.slice().reverse().map(c => `<li><button data-call="${c.id}"><span class="mono">#${c.n}</span><span>${esc(c.text)}</span></button></li>`).join('')}</ul></details>`)).join('')
+    : '<p class="empty">No duplicates answered yet. Duplicates are only answered after a dispatcher confirms the incident.</p>';
+  const cb = S.calls.filter(c => c.status === 'callback');
+  document.getElementById('cb').innerHTML = cb.length ? cb.map(c => `<li><button class="call" data-call="${c.id}"><span class="top"><span class="mono">#${c.n}</span><span class="tag cb">Text sent · call back</span></span><span class="txt">“${esc(c.text)}”</span></button></li>`).join('') : '<li class="empty">Nobody has hung up yet.</li>';
+}
+function renderMap() {
+  const AV = [['8th', 60], ['7th', 160], ['6th', 260], ['5th', 360], ['Madison', 450], ['Park', 540]], y = st => 26 + (40 - st) * 26;
+  const g = [];
+  for (let st = 26; st <= 40; st++) g.push(`<line class="st" x1="20" x2="580" y1="${y(st)}" y2="${y(st)}" style="stroke-width:${st % 2 ? 3 : 5}"/>`);
+  AV.forEach(([n, x]) => g.push(`<line class="st" x1="${x}" x2="${x}" y1="10" y2="392"/>`));
+  AV.forEach(([n, x]) => g.push(`<text class="lbl" x="${x + 4}" y="18">${n}</text>`));
+  [28, 32, 34, 38].forEach(st => g.push(`<text class="lbl" x="584" y="${y(st) + 4}" text-anchor="end">${st}</text>`));
+  g.push(`<text class="lm" x="268" y="${y(35) + 16}">Herald Sq</text>`, `<text class="lm" x="70" y="${y(32) - 8}">Penn Station</text>`);
+  S.calls.filter(c => LOC[c.inc] && ['waiting', 'flagged', 'talking'].includes(c.status)).forEach(c => {
+    const [x, yy] = LOC[c.inc], a = c.n * 2.39, r = 26 + (c.n * 7) % 22;
+    g.push(`<circle class="dot${c.delta.length && S.inc[c.inc].calls[0] !== c.id ? ' new' : ''}" cx="${x + Math.cos(a) * r}" cy="${yy + Math.sin(a) * r}" r="4"/>`);
+  });
+  Object.values(S.inc).filter(i => LOC[i.key]).forEach(i => {
+    const n = i.calls.length, [x, yy] = LOC[i.key], r = 12 + Math.sqrt(n) * 3.6;
+    g.push(`<circle class="bub ${i.type}${i.confirmed ? '' : ' pending'}" cx="${x}" cy="${yy}" r="${r}" data-inc="${i.key}"><title>${TYPE[i.type]}: ${n} calls</title></circle><text class="cnt" x="${x}" y="${yy + 5}">${n}</text>`);
+  });
+  document.getElementById('map').innerHTML = g.join('');
+}
+function renderIncs() {
+  const L = { A: '5th Ave & W 34th St', B: '5th Ave & W 34th St', C: '7th Ave & W 28th St' };
+  document.getElementById('incs').innerHTML = Object.values(S.inc).filter(i => LOC[i.key]).map(i => {
+    const n = i.calls.length, dup = S.calls.filter(c => c.inc === i.key && ['clustered', 'grouped', 'callback'].includes(c.status)).length;
+    return `<article class="inc ${i.type}${S.selInc === i.key ? ' sel' : ''}">
+      <h3>${TYPE[i.type]} · ${L[i.key]}</h3>
+      <div class="sub"><span class="tag ${i.confirmed ? 'ok' : 'wait'}">${i.confirmed ? 'Confirmed' : 'Pending confirmation'}</span><span class="mono">${n} calls · ${dup} confirmations</span></div>
+      <p class="impact">People at risk: ${atRisk(i.type, i.facts.map(f => f.f))[0]} · Spreading: ${IMPACT[i.type].spread[1] ? 'yes' : 'no'} · <b>Severity ${sevOf(i.type, i.facts.map(f => f.f))}</b></p>
+      ${n >= 20 ? `<p class="bc">${n} callers: a large, highly visible event. Duplicates confirm its size.</p>` : ''}
+      <div class="k">Live incident brief</div>
+      <ul class="facts">${i.facts.filter(f => !['loc34', 'loc28'].includes(f.f)).map(f => `<li class="${f.isnew ? 'isnew' : ''}">${FACT[f.f]}<small>${f.isnew ? 'NEW · ' : ''}#${f.src}</small></li>`).join('')}</ul>
+      ${BROADCAST[i.key] ? (i.confirmed ? `<p class="bc">Broadcast: “${BROADCAST[i.key]}”</p>` : `<button class="btn red" data-confirm="${i.key}">Confirm &amp; broadcast</button>`) : ''}
+    </article>`;
+  }).join('') || '<p class="empty">No incidents yet.</p>';
+}
+function renderDetail() {
+  const c = byId(S.sel), el = document.getElementById('detail'), h = document.getElementById('hears');
+  if (!c) {
+    el.innerHTML = `<div class="k">Selected call</div><p class="empty">Tap any call to see its transcript, the facts the AI extracted, and how they compare with what the incident already knows.</p>`;
+    h.innerHTML = `<div class="k">What callers hear</div><p>Before an incident is confirmed: “All 911 operators are busy. Please stay on the line.” After a dispatcher confirms it, duplicates hear the approved broadcast and keep their place in line.</p>`;
+    return;
+  }
+  const inc = S.inc[c.inc], first = inc.calls[0] === c.id;
+  const verdict = c.mismatch ? ['violet', `Same corner, different type: <b>stabbing</b> vs <b>fire</b>. The AI won’t merge different types. Suggest split.`]
+    : first ? ['red', 'First report of this incident. It creates the incident card and goes to a dispatcher.']
+    : c.delta.length ? ['red', `<b>${c.delta.length} new fact${c.delta.length > 1 ? 's' : ''}</b> the incident didn’t have. Flagged for a dispatcher and added to the card.`]
+    : c.status === 'waiting' ? ['', 'Nothing new, but the incident isn’t confirmed yet, so the call waits for a human.']
+    : c.status === 'grouped' ? ['', 'Nothing new. Grouped with the incident. Rules here require a human to answer, so a dispatcher answers the whole group with one tap.']
+    : ['green', 'Nothing new. Counted as a confirmation and answered with the approved broadcast. The line is held.'];
+  el.innerHTML = `<div class="k">Call #${c.n} · ${esc(c.phone)} · ${clock(c.t)}</div>
+    <h2>${c.mismatch ? 'Different incident?' : first ? 'First report' : c.delta.length ? 'New information' : 'Known information'}</h2>
+    <p class="quote">“${esc(c.text)}”</p>
+    <div class="k">Facts extracted vs known</div>
+    <div class="chips">${c.facts.map(f => `<span class="chip ${c.mismatch ? 'mis' : c.delta.includes(f) && !first ? 'new' : ''}">${c.delta.includes(f) && !first && !c.mismatch ? '+ ' : ''}${FACT[f]}</span>`).join('')}</div>
+    <p class="verdict ${verdict[0]}">${verdict[1]}</p>
+    <table class="sc"><tbody>${scoreParts(c).map(p => `<tr><td>${esc(p[0])}</td><td>${p[0] === 'Incident severity' ? '' : '+'}${p[1]}</td></tr>`).join('')}<tr><td><b>Call priority</b> (max 100)</td><td><b>${scoreOf(c)}</b></td></tr></tbody></table>
+    <p class="k" style="color:var(--green)">Content-only scoring · no voice stress · no neighborhood</p>
+    <div class="actions">
+      ${['waiting', 'flagged'].includes(c.status) && !c.mismatch ? `<button class="btn primary" data-pick="${c.id}">Pick up</button>` : ''}
+      ${c.mismatch ? '<button class="btn" style="background:var(--violet);border-color:var(--violet);color:#120a26" data-split>Split into new incident</button>' : ''}
+      ${['clustered', 'grouped'].includes(c.status) ? `<button class="btn" data-pull="${c.id}">Pull out of cluster</button>` : ''}
+      ${c.status === 'talking' ? `<span class="tag talk">On the line with ${esc(c.who)}</span>` : ''}
+    </div>`;
+  const hear = c.status === 'clustered' ? `“911. ${BROADCAST[c.inc]}${SAY}”`
+    : c.status === 'callback' ? `Text message: “911: We got your call about 5th Ave &amp; 34th St. Responders are on scene. Reply or call 911 again if you need help.”`
+    : c.status === 'grouped' ? '“All 911 operators are busy. Please stay on the line.” A dispatcher will answer this group with one tap.'
+    : c.status === 'talking' ? `Live with ${esc(c.who)}.` : c.status === 'flagged' ? '“Connecting you to a dispatcher now. Stay on the line.”'
+    : '“All 911 operators are busy. Please stay on the line.”';
+  h.innerHTML = `<div class="k">What caller #${c.n} hears</div><p>${hear}</p>`;
+}
+function renderLog() {
+  document.getElementById('log').innerHTML = S.log.slice(0, 30).map(l => `<li><time>${clock(l.t).slice(0, -3)}</time><span>${esc(l.msg)}</span>${l.undo && byId(l.undo).status === 'clustered' ? `<button data-pull="${l.undo}">Undo</button>` : '<span></span>'}</li>`).join('') || '<li><span></span><span class="empty">No actions yet.</span><span></span></li>';
+}
+function render() { renderHeader(); renderQueue(); renderMap(); renderIncs(); renderDetail(); renderLog(); }
+
+document.getElementById('play').onclick = () => { if (timer) { pause(); render(); } else play(); };
+document.getElementById('reset').onclick = reset;
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-call],[data-confirm],[data-split],[data-pick],[data-pull],[data-inc],[data-mode],[data-answer]'); if (!t) return;
+  const d = t.dataset;
+  if (d.call) S.sel = d.call;
+  else if (d.confirm) { confirmInc(d.confirm); if (S.gate === 'confirm') play(); }
+  else if ('split' in d) { doSplit(); if (S.gate === 'split') play(); }
+  else if (d.pick) pickup(d.pick, DISP[0]);
+  else if (d.pull) { pullOut(d.pull); S.sel = d.pull; }
+  else if (d.mode) setMode(d.mode);
+  else if (d.answer) answerGroup(d.answer);
+  else if (d.inc) S.selInc = S.selInc === d.inc ? null : d.inc;
+  render();
+});
+reset();
+</script>
