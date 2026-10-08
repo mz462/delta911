@@ -26,19 +26,19 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 12px 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
 .brand h1 { font: 800 24px/1 var(--font-display); margin: 0; letter-spacing: -.01em; }
-.brand h1 b { color: var(--red); }
+.brand h1 b { color: var(--muted); }
 .brand span { color: var(--muted); font-size: 13px; }
 .clock { font: 600 15px var(--font-mono); background: var(--panel); border: 1px solid var(--line); padding: 4px 10px; border-radius: 8px; }
 .ctrl { display: flex; gap: 6px; }
 .btn { border: 1px solid var(--line); background: var(--panel2); padding: 7px 12px; border-radius: 8px; font-weight: 600; }
 .btn.primary { background: var(--cyan); border-color: var(--cyan); color: #04121c; }
-.btn.red { background: var(--red); border-color: var(--red); color: #1a0402; }
+.btn.red { background: var(--cyan); border-color: var(--cyan); color: #04121c; }
 .btn.ghost { background: none; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 .stats { display: grid; grid-template-columns: repeat(6, auto); gap: 4px 18px; width: 100%; }
 .stat b { display: block; font: 800 22px/1.1 var(--font-display); }
 .stat small { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.stat.red b { color: var(--red); } .stat.green b { color: var(--green); } .stat.cyan b { color: var(--cyan); } .stat.violet b { color: var(--violet); }
+.stat.cyan b { color: var(--cyan); }
 .compare { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
 .compare strong { color: var(--ink); }
 
@@ -61,20 +61,20 @@ header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; backg
 .call .txt { font-size: 14px; }
 .call .why { font-size: 12px; color: var(--muted); }
 .score { margin-left: auto; font: 600 12px var(--font-mono); padding: 1px 6px; border-radius: 4px; background: var(--line); color: var(--ink); }
-.p-red .score { background: var(--red); color: #1a0402; } .p-amber .score { background: var(--amber); color: #1e1300; } .p-green .score { background: var(--green); color: #03170c; }
+.p-red .score { background: var(--red); color: #1a0402; } .p-amber .score { background: var(--amber); color: #1e1300; } 
 .tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 4px; }
 .tag.new { background: var(--red-soft); color: var(--red); }
-.tag.split { background: var(--violet-soft); color: var(--violet); }
+.tag.split { background: var(--amber-soft); color: var(--amber); }
 .tag.wait { background: var(--amber-soft); color: var(--amber); }
 .tag.talk { background: var(--cyan-soft); color: var(--cyan); }
 .tag.ok { background: var(--green-soft); color: var(--green); }
 .tag.cb { background: var(--line); color: var(--ink); }
-.cluster { background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 40%, transparent); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.cluster { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .cluster summary { cursor: pointer; display: flex; justify-content: space-between; gap: 8px; font-weight: 600; list-style: none; }
 .cluster summary::-webkit-details-marker { display: none; }
-.cluster summary b { color: var(--green); font-family: var(--font-mono); }
+.cluster summary b { color: var(--muted); font-family: var(--font-mono); }
 .mini { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; }
-.mini button { width: 100%; background: none; border: 0; border-top: 1px solid color-mix(in srgb, var(--green) 20%, transparent); padding: 5px 0; text-align: left; display: flex; gap: 8px; font-size: 12px; }
+.mini button { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); padding: 5px 0; text-align: left; display: flex; gap: 8px; font-size: 12px; }
 .mini button span:last-child { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
 
@@ -83,17 +83,16 @@ svg.map { display: block; width: 100%; height: auto; max-width: 100%; border-rad
 .map .st { stroke: var(--street); stroke-width: 6; }
 .map .lbl { fill: var(--muted); font: 600 13px var(--font-body); }
 .map .lm { fill: var(--muted); font: 500 12px var(--font-body); font-style: italic; }
-.map .dot { fill: var(--amber); }
+.map .dot { fill: var(--muted); }
 .map .dot.new { fill: var(--red); }
 .map .bub { stroke-width: 3; cursor: pointer; }
-.map .bub.fire { fill: color-mix(in srgb, var(--red) 30%, transparent); stroke: var(--red); }
-.map .bub.stab { fill: color-mix(in srgb, var(--violet) 30%, transparent); stroke: var(--violet); }
-.map .bub.crash { fill: color-mix(in srgb, var(--amber) 25%, transparent); stroke: var(--amber); }
+.map .bub { fill: color-mix(in srgb, var(--muted) 18%, transparent); stroke: var(--muted); }
+.map .bub.pending { stroke: var(--amber); }
 .map .bub.pending { stroke-dasharray: 6 5; }
 .map .cnt { fill: var(--ink); font: 700 15px var(--font-mono); text-anchor: middle; pointer-events: none; }
 .incs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
 .inc { background: var(--panel2); border: 1px solid var(--line); border-top: 4px solid var(--muted); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.inc.fire { border-top-color: var(--red); } .inc.stab { border-top-color: var(--violet); } .inc.crash { border-top-color: var(--amber); }
+
 .inc.sel { outline: 2px solid var(--cyan); }
 .inc h3 { margin: 0; font: 800 17px/1.15 var(--font-display); }
 .inc .sub { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
@@ -120,16 +119,21 @@ svg.map { display: block; width: 100%; height: auto; max-width: 100%; border-rad
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--line); color: var(--muted); }
 .chip.new { background: var(--red-soft); color: var(--red); font-weight: 600; }
-.chip.mis { background: var(--violet-soft); color: var(--violet); font-weight: 600; }
+.chip.mis { background: var(--amber-soft); color: var(--amber); font-weight: 600; }
 .verdict { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--panel2); margin: 0; }
-.verdict.red { background: var(--red-soft); } .verdict.green { background: var(--green-soft); } .verdict.violet { background: var(--violet-soft); }
+.verdict.red { background: var(--red-soft); }
 table.sc { width: 100%; border-collapse: collapse; font-size: 12px; }
 table.sc td { padding: 3px 0; border-bottom: 1px solid var(--line); }
 table.sc td:last-child { text-align: right; font-family: var(--font-mono); }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.hears { background: var(--cyan-soft); border: 1px solid color-mix(in srgb, var(--cyan) 40%, transparent); }
+.hears { background: var(--panel); }
 .hears p { margin: 0; font-size: 14px; }
-.hears .k { color: var(--cyan); }
+.tx { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 13px; max-height: 260px; overflow-y: auto; }
+.tx dt { font: 600 11px var(--font-mono); color: var(--muted); text-transform: uppercase; padding-top: 2px; }
+.tx dd { margin: 0; }
+.tx dd.c { font-size: 14px; }
+.tx dd.sys { color: var(--muted); font-style: italic; }
+.ty { font: 600 10px var(--font-mono); letter-spacing: .06em; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
 .log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: 12px; max-height: 220px; overflow-y: auto; }
 .log li { display: grid; grid-template-columns: 62px 1fr auto; gap: 6px; padding: 4px 0; border-top: 1px solid var(--line); align-items: baseline; }
 .log li:first-child { border-top: 0; }
@@ -201,7 +205,7 @@ table.sc td:last-child { text-align: right; font-family: var(--font-mono); }
   <h3>Current status: the problem</h3>
   <ul>
     <li><b>Duplicate reports swamp the lines.</b> Dozens to hundreds of bystanders report the same obvious event. Lahaina, 2023: 4,523 calls in one day against an average of 360, with dispatch 51% short-staffed. Sedgwick County, KS: 168 calls in under 10 minutes during a mall shooting; the director said it would take 168 dispatchers to avoid holds.</li>
-    <li><b>Critical calls get buried.</b> At Apalachee High School (2024), callers heard a "high call volume" recording and one waited more than 10 minutes. The caller trapped on the 3rd floor is #75 in line behind 74 people describing the same smoke.</li>
+    <li><b>Critical calls get buried.</b> At Apalachee High School (2024), callers heard a "high call volume" recording and one waited more than 10 minutes. The caller trapped on the 3rd floor can be #75 in line behind 74 people describing the same smoke.</li>
     <li><b>New facts get lost.</b> "There's a second victim" or "he ran toward Herald Square" changes the response, but it is spoken into the same queue as everyone else.</li>
     <li><b>Staffing is thin.</b> In a 2022 IAED/NASNA survey of 774 centers, about a third reported vacancy rates of 30% or more. In a 2023 NENA/Carbyne survey, 74% of respondents reported burnout.</li>
   </ul>
@@ -269,7 +273,7 @@ table.sc td:last-child { text-align: right; font-family: var(--font-mono); }
     <li>Press <b>Play</b>. The first fire report arrives and duplicates start to pile up.</li>
     <li>When asked, <b>Confirm &amp; broadcast</b> the fire. Waiting duplicates collapse into one cluster that is answered by the AI, with the line held.</li>
     <li>A stabbing is reported at the same corner. Tap <b>Split</b> to create a second incident.</li>
-    <li>Watch call #75, "I'm on the third floor and I can't breathe", jump out of the noise with a red NEW fact.</li>
+    <li>Watch the call "I'm on the third floor and I can't breathe", jump out of the noise with a red NEW fact.</li>
     <li>Check the header: every call answered, only a handful needed a human, and 0 were dropped.</li>
   </ol>
 
@@ -314,6 +318,8 @@ const sum = p => p.reduce((s, x) => s + x[1], 0);
 const sevOf = (type, facts) => Math.min(100, sum(sevParts(type, facts)));
 const BUMP = { trapped: 30, mobility: 20, suspect: 15, injured: 10 };
 const TYPE = { fire: 'Structure fire', stab: 'Stabbing', crash: 'Vehicle crash', med: 'Medical emergency', other: 'Non-emergency' };
+const TY = { fire: 'FIRE', stab: 'STAB', crash: 'CRASH', med: 'MED', other: 'ROUTINE' };
+const SUGGEST = { fire: 'FDNY engine + ladder', trapped: 'FDNY rescue company + EMS to 3rd floor', mobility: 'Ladder company, assisted evacuation apt 4B', knife: 'NYPD + EMS', injured: 'EMS', suspect: 'NYPD units toward Herald Sq', cpr: 'EMS advanced life support', headinj: 'EMS', crash: 'NYPD traffic unit' };
 let MODE = 'auto';   // regional compliance profile: 'auto' = AI may answer duplicates (line held), 'human' = a person must answer every call
 const LOC = { A: [360, 186], B: [384, 206], C: [160, 330] };
 const DISP = ['D1 Ramirez', 'D2 Okafor', 'D3 Chen'];
@@ -469,8 +475,8 @@ function renderHeader() {
   const C = S.calls, human = C.filter(c => ['waiting', 'flagged', 'talking'].includes(c.status)).length;
   const newFacts = Object.values(S.inc).reduce((n, i) => n + i.facts.filter(f => f.isnew).length, 0);
   document.getElementById('stats').innerHTML =
-    stat('', C.length, 'Calls in') + stat('green', C.filter(c => c.status === 'clustered').length, MODE === 'human' ? 'Answered (one tap), line held' : 'Answered by AI, line held') +
-    stat('red', newFacts, 'New facts surfaced') + stat('violet', S.split ? 1 : 0, 'Incidents split') +
+    stat('', C.length, 'Calls in') + stat('', C.filter(c => c.status === 'clustered').length, MODE === 'human' ? 'Answered (one tap), line held' : 'Answered by AI, line held') +
+    stat('', newFacts, 'New facts surfaced') + stat('', S.split ? 1 : 0, 'Incidents split') +
     stat('cyan', human, 'Need a dispatcher') + stat('', 0, 'Calls dropped') +
     `<div class="compare"><span>Without Delta911: <strong>${C.length} calls</strong> in one line for this sector’s <strong>3 call-takers</strong>.</span><span>With Delta911: <strong>${human}</strong> need a human, every new fact on top${MODE === 'human' ? `, <strong>${C.filter(c => c.status === 'grouped').length}</strong> grouped for one-tap reply` : ''}.</span></div>`;
   document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === MODE));
@@ -479,16 +485,16 @@ function renderHeader() {
   const g = document.getElementById('gate');
   g.hidden = !S.gate;
   if (S.gate === 'confirm') g.innerHTML = `<div><div class="k">Dispatcher action needed</div><p>AI grouped ${S.inc.A.calls.length} calls as one structure fire at 5th Ave &amp; 34th St. Confirm it to approve the broadcast and answer the duplicates.</p></div><button class="btn red" data-confirm="A">Confirm &amp; broadcast</button>`;
-  else if (S.gate === 'split') g.innerHTML = `<div><div class="k">Dispatcher action needed</div><p>Call #${byId('stab').n} is at the same corner as the fire but reports a <b>stabbing</b>. Different incident type, so the AI won’t merge it.</p></div><button class="btn" style="background:var(--violet);border-color:var(--violet);color:#120a26" data-split>Split into new incident</button>`;
+  else if (S.gate === 'split') g.innerHTML = `<div><div class="k">Dispatcher action needed</div><p>Call #${byId('stab').n} is at the same corner as the fire but reports a <b>stabbing</b>. Different incident type, so the AI won’t merge it.</p></div><button class="btn primary" data-split>Split into new incident</button>`;
 }
 function callRow(c) {
   const tag = c.status === 'talking' ? `<span class="tag talk">${esc(c.who)}</span>` : c.mismatch ? '<span class="tag split">Type mismatch</span>'
     : c.delta.length && S.inc[c.inc].calls[0] !== c.id ? '<span class="tag new">New fact</span>' : c.pulled ? '<span class="tag wait">Pulled out</span>'
-    : S.inc[c.inc].calls[0] === c.id ? '<span class="tag new">First report</span>' : '<span class="tag wait">Likely duplicate</span>';
+    : S.inc[c.inc].calls[0] === c.id ? '<span class="tag cb">First report</span>' : '<span class="tag cb">Likely duplicate</span>';
   const why = c.mismatch ? 'Suggest split: stabbing ≠ fire' : c.delta.length && S.inc[c.inc].calls[0] !== c.id ? '+ ' + c.delta.filter(f => !['fire', 'knife', 'smoke'].includes(f)).map(f => FACT[f]).join(', ')
     : c.status === 'waiting' && S.inc[c.inc].calls[0] !== c.id ? 'Waiting for the incident to be confirmed' : TYPE[c.type] + (c.where ? ' · ' + c.where : '');
-  return `<li><button class="call p-${pri(scoreOf(c))}" data-call="${c.id}" aria-current="${S.sel === c.id}">
-    <span class="top"><span class="mono">#${c.n}</span><span class="mono">${clock(c.t).slice(0, -3)}</span>${tag}<span class="score">${scoreOf(c)}</span></span>
+  return `<li><button class="call p-${c.status === 'talking' ? 'none' : pri(scoreOf(c))}" data-call="${c.id}" aria-current="${S.sel === c.id}">
+    <span class="top"><span class="ty">${TY[c.type]}</span><span class="mono">#${c.n}</span><span class="mono">${clock(c.t).slice(0, -3)}</span>${tag}<span class="score">${scoreOf(c)}</span></span>
     <span class="txt">“${esc(c.text)}”</span><span class="why">${esc(why)}</span></button></li>`;
 }
 function renderQueue() {
@@ -501,7 +507,7 @@ function renderQueue() {
     <ul class="mini">${cs.slice().reverse().map(c => `<li><button data-call="${c.id}"><span class="mono">#${c.n}</span><span>${esc(c.text)}</span></button></li>`).join('')}</ul></details>`)).join('')
     : '<p class="empty">No duplicates answered yet. Duplicates are only answered after a dispatcher confirms the incident.</p>';
   const cb = S.calls.filter(c => c.status === 'callback');
-  document.getElementById('cb').innerHTML = cb.length ? cb.map(c => `<li><button class="call" data-call="${c.id}"><span class="top"><span class="mono">#${c.n}</span><span class="tag cb">Text sent · call back</span></span><span class="txt">“${esc(c.text)}”</span></button></li>`).join('') : '<li class="empty">Nobody has hung up yet.</li>';
+  document.getElementById('cb').innerHTML = cb.length ? cb.map(c => `<li><button class="call" data-call="${c.id}"><span class="top"><span class="ty">${TY[c.type]}</span><span class="mono">#${c.n}</span><span class="tag cb">Text sent · call back</span></span><span class="txt">“${esc(c.text)}”</span></button></li>`).join('') : '<li class="empty">Nobody has hung up yet.</li>';
 }
 function renderMap() {
   const AV = [['8th', 60], ['7th', 160], ['6th', 260], ['5th', 360], ['Madison', 450], ['Park', 540]], y = st => 26 + (40 - st) * 26;
@@ -526,7 +532,7 @@ function renderIncs() {
   document.getElementById('incs').innerHTML = Object.values(S.inc).filter(i => LOC[i.key]).map(i => {
     const n = i.calls.length, dup = S.calls.filter(c => c.inc === i.key && ['clustered', 'grouped', 'callback'].includes(c.status)).length;
     return `<article class="inc ${i.type}${S.selInc === i.key ? ' sel' : ''}">
-      <h3>${TYPE[i.type]} · ${L[i.key]}</h3>
+      <h3><span class="ty">${TY[i.type]}</span> ${TYPE[i.type]} · ${L[i.key]}</h3>
       <div class="sub"><span class="tag ${i.confirmed ? 'ok' : 'wait'}">${i.confirmed ? 'Confirmed' : 'Pending confirmation'}</span><span class="mono">${n} calls · ${dup} confirmations</span></div>
       <p class="impact">People at risk: ${atRisk(i.type, i.facts.map(f => f.f))[0]} · Spreading: ${IMPACT[i.type].spread[1] ? 'yes' : 'no'} · <b>Severity ${sevOf(i.type, i.facts.map(f => f.f))}</b></p>
       ${n >= 20 ? `<p class="bc">${n} callers: a large, highly visible event. Duplicates confirm its size.</p>` : ''}
@@ -544,23 +550,25 @@ function renderDetail() {
     return;
   }
   const inc = S.inc[c.inc], first = inc.calls[0] === c.id;
-  const verdict = c.mismatch ? ['violet', `Same corner, different type: <b>stabbing</b> vs <b>fire</b>. The AI won’t merge different types. Suggest split.`]
-    : first ? ['red', 'First report of this incident. It creates the incident card and goes to a dispatcher.']
+  const verdict = c.mismatch ? ['', `Same corner, different type: <b>stabbing</b> vs <b>fire</b>. The AI won’t merge different types. Suggest split.`]
+    : first ? ['', 'First report of this incident. It creates the incident card and goes to a dispatcher.']
     : c.delta.length ? ['red', `<b>${c.delta.length} new fact${c.delta.length > 1 ? 's' : ''}</b> the incident didn’t have. Flagged for a dispatcher and added to the card.`]
     : c.status === 'waiting' ? ['', 'Nothing new, but the incident isn’t confirmed yet, so the call waits for a human.']
     : c.status === 'grouped' ? ['', 'Nothing new. Grouped with the incident. Rules here require a human to answer, so a dispatcher answers the whole group with one tap.']
-    : ['green', 'Nothing new. Counted as a confirmation and answered with the approved broadcast. The line is held.'];
+    : ['', 'Nothing new. Counted as a confirmation and answered with the approved broadcast. The line is held.'];
   el.innerHTML = `<div class="k">Call #${c.n} · ${esc(c.phone)} · ${clock(c.t)}</div>
     <h2>${c.mismatch ? 'Different incident?' : first ? 'First report' : c.delta.length ? 'New information' : 'Known information'}</h2>
-    <p class="quote">“${esc(c.text)}”</p>
+    <div class="k">Full transcript</div>
+    <dl class="tx">${transcriptOf(c).map(([w, t]) => `<dt>${esc(w)}</dt><dd class="${w === 'Caller' ? 'c' : w === '—' ? 'sys' : ''}">${esc(t)}</dd>`).join('')}</dl>
     <div class="k">Facts extracted vs known</div>
     <div class="chips">${c.facts.map(f => `<span class="chip ${c.mismatch ? 'mis' : c.delta.includes(f) && !first ? 'new' : ''}">${c.delta.includes(f) && !first && !c.mismatch ? '+ ' : ''}${FACT[f]}</span>`).join('')}</div>
     <p class="verdict ${verdict[0]}">${verdict[1]}</p>
+    ${(() => { const sg = [...new Set(c.facts.map(f => SUGGEST[f]).filter(Boolean))]; return sg.length ? `<p class="k" style="text-transform:none;letter-spacing:0;font-size:12px">Suggested resources: ${esc(sg.join(' · '))}</p>` : ''; })()}
     <table class="sc"><tbody>${scoreParts(c).map(p => `<tr><td>${esc(p[0])}</td><td>${p[0] === 'Incident severity' ? '' : '+'}${p[1]}</td></tr>`).join('')}<tr><td><b>Call priority</b> (max 100)</td><td><b>${scoreOf(c)}</b></td></tr></tbody></table>
     <p class="k" style="color:var(--green)">Content-only scoring · no voice stress · no neighborhood</p>
     <div class="actions">
       ${['waiting', 'flagged'].includes(c.status) && !c.mismatch ? `<button class="btn primary" data-pick="${c.id}">Pick up</button>` : ''}
-      ${c.mismatch ? '<button class="btn" style="background:var(--violet);border-color:var(--violet);color:#120a26" data-split>Split into new incident</button>' : ''}
+      ${c.mismatch ? '<button class="btn primary" data-split>Split into new incident</button>' : ''}
       ${['clustered', 'grouped'].includes(c.status) ? `<button class="btn" data-pull="${c.id}">Pull out of cluster</button>` : ''}
       ${c.status === 'talking' ? `<span class="tag talk">On the line with ${esc(c.who)}</span>` : ''}
     </div>`;
@@ -570,6 +578,36 @@ function renderDetail() {
     : c.status === 'talking' ? `Live with ${esc(c.who)}.` : c.status === 'flagged' ? '“Connecting you to a dispatcher now. Stay on the line.”'
     : '“All 911 operators are busy. Please stay on the line.”';
   h.innerHTML = `<div class="k">What caller #${c.n} hears</div><p>${hear}</p>`;
+}
+// Mock transcripts. Duplicates' follow-ups deliberately add no new facts; flagged calls carry the delta in their own words.
+const FOLLOW = {
+  fire: 'I’m across the street, I’m not inside. The smoke is getting worse.', stab: 'I’m not hurt, I’m across the street. People are trying to help him.',
+  crash: 'We pulled over to the side. Everyone’s okay, we just need a report.', med: 'Please hurry.', other: 'It’s not an emergency, I just didn’t know who else to call.',
+};
+const EXTRA = {
+  c1: [['Caller', 'It’s the six-story apartment building on the corner, smoke is coming out of the windows on the second and third floor.']],
+  trapped: [['Caller', 'Apartment 3C. I put a wet towel under the door but the smoke is coming in. I’m by the window facing 34th Street.']],
+  mobility: [['Caller', 'I already got out, I’m on the sidewalk. She’s in 4B, she uses a wheelchair and the elevator isn’t working.']],
+  suspect: [['Caller', 'Red hoodie, jeans, tall. He went east on 34th toward Herald Square maybe a minute ago. I didn’t see the knife anymore.']],
+  stab: [['Caller', 'He’s on the sidewalk by the bank, he’s holding his side, there’s a lot of blood. The guy ran off.']],
+  bg0: [['Caller', 'He’s not breathing, I’m pushing on his chest. He’s 68, he has heart problems.']],
+  bg3: [['Caller', 'She fell down maybe ten stairs. She’s awake but she doesn’t know what day it is.']],
+};
+const TALK = {
+  fire: 'Firefighters are on scene. Stay low, keep the door closed and stay by the window. I’m staying on the line with you.',
+  stab: 'Officers and an ambulance are on the way. If it’s safe, press a cloth firmly on the wound. Don’t follow the suspect.',
+  crash: 'Thanks, I’ve logged it. Move to the sidewalk if you can; an officer will come for the report.', med: 'Help is on the way. I’ll walk you through it. Push hard and fast in the center of the chest.',
+  other: 'This line is for emergencies. I’m transferring you to 311.',
+};
+function transcriptOf(c) {
+  const L = [['AI', '911, this call is recorded and transcribed. What’s the address of your emergency?'], ['Caller', c.text], ...(EXTRA[c.id] || [['AI', 'Are you hurt, or is anyone near you in danger?'], ['Caller', FOLLOW[c.type]]])];
+  if (c.status === 'clustered') L.push(['AI', `${BROADCAST[c.inc]}${SAY}`], ['Caller', 'Okay. I’m outside, I’m safe.'], ['—', c.who ? `Answered by ${c.who} with one tap. Line held.` : 'Line held, caller keeps their place.']);
+  else if (c.status === 'grouped') L.push(['AI', 'All 911 operators are busy. Please stay on the line.'], ['—', 'Grouped as duplicate. Waiting for one-tap human answer.']);
+  else if (c.status === 'callback') L.push(['AI', `${BROADCAST[c.inc]}${SAY}`], ['—', 'Caller hung up. Text sent; added to callback queue.']);
+  else if (c.status === 'flagged') L.push(['AI', 'Thank you. I’m connecting you to a dispatcher now. Stay on the line.']);
+  else if (c.status === 'talking') L.push([c.who.split(' ')[0], TALK[c.type]], ['—', `Live with ${c.who} · ${Math.max(1, Math.round(S.t - c.t))}s`]);
+  else L.push(['AI', 'All 911 operators are busy. Please stay on the line.']);
+  return L;
 }
 function renderLog() {
   document.getElementById('log').innerHTML = S.log.slice(0, 30).map(l => `<li><time>${clock(l.t).slice(0, -3)}</time><span>${esc(l.msg)}</span>${l.undo && byId(l.undo).status === 'clustered' ? `<button data-pull="${l.undo}">Undo</button>` : '<span></span>'}</li>`).join('') || '<li><span></span><span class="empty">No actions yet.</span><span></span></li>';
